@@ -78,9 +78,10 @@ float getDistance() { // Find the distance (cm) from the sonar sensor to the nea
   delayMicroseconds(10);
   digitalWrite(trigger, LOW);
   duration = pulseIn(echo, 1);
- 
-  return (duration) * 0.01715; // Distance = speed of sound * 1/2 delta t
-  
+  if(duration * 0.01715 > 400) return 400;
+  else return duration * 0.01715; // Distance = speed of sound * 1/2 delta t
+  // The sensor returns 1 until it hears the returning pulse.
+  // The length of the high pulse is independent of the length of the pulse to the trigger pin.
 }
 
 
@@ -181,13 +182,13 @@ void loop() {
 
 
   //WRITE TO SD CARD
-  if(l>max_size && ((int)theta_deg)%15==0){ // Let the ring buffer initialize before recording any data/only take measurements every 15 degrees
+  if(l>max_size){ // Let the ring buffer initialize before recording any data/only take measurements every 15 degrees
   
   File output = SD.open(filename, FILE_WRITE);
   output.print(x); output.print(","); output.println(y);
   output.close();}
   
-  
+  Serial.println(theta);
   l++; //File just got longer; increment the length counter.
   dt = 0.001*(millis() - t); // Read change in time (seconds)
 }
