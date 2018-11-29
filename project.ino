@@ -78,9 +78,9 @@ float getDistance() { // Find the distance (cm) from the sonar sensor to the nea
   delayMicroseconds(10);
   digitalWrite(trigger, LOW);
   duration = pulseIn(echo, 1);
-  return (duration - 10) * 0.01715; // Distance = speed of sound * 1/2 delta t
-  // New fix: subtract 10 to account for the original width of the pulse.
-  // The echo is as long as the original pulse plus twice the distance / the speed of sound.
+  return duration * 0.01715; // Distance = speed of sound * 1/2 delta t
+  // The sensor returns 1 until it hears the returning pulse.
+  // The length of the high pulse is independent of the length of the pulse to the trigger pin.
 }
 
 
@@ -157,10 +157,10 @@ void loop() {
   // Read values from MPU-6050
   mpu6050.update(); // Library-defined function to grab values from MPU6050
 
-  rax = mpu6050.getAccX() - accelXoffset;
-  ray = mpu6050.getAccY() - accelYoffset;
-  //rax = mpu6050.getAccX();
-  //ray = mpu6050.getAccY();
+  //rax = mpu6050.getAccX() - accelXoffset;
+  //ray = mpu6050.getAccY() - accelYoffset;
+  rax = mpu6050.getAccX();
+  ray = mpu6050.getAccY();
   raz = -1 * (mpu6050.getAccZ() - accelZoffset); // Accelerometer z axis is upside down and we zeroed it
 
   phi = (mpu6050.getGyroAngleY() - gyo) * 0.017453293; // phi is the angle of vertical tilt: radians
@@ -169,13 +169,13 @@ void loop() {
   
   // Get horizontal offset
   // Add acceleration vectors (based on angles) to get true accelerations (eliminate tilt)
-  accelX = ascale * (rax * cos(phi)+raz*sin(phi)); // Calculate acceleration in x (direction of sonar)
-  accelY = ascale * (ray * cos(rho)+raz*sin(rho)); // Calculate acceleration in y (side-to-side)
+  accelX = ascale * ((rax * cos(phi)+raz*sin(phi)) - accelZoffset*sin(phi)); // Calculate acceleration in x (direction of sonar)
+  accelY = ascale * ((ray * cos(rho)+raz*sin(rho)) - accelZoffset*sin(rho)); // Calculate acceleration in y (side-to-side)
   vX = vX + accelX * dt;
   vY = vY + accelY * dt; // Integrate acceleration to get velocity;
-  //offsetX = offsetX + vX * dt; // integrate acceleration to get position change.
-  //offsetY = offsetY + vY * dt;
-  offsetX = 0; offsetY = 0;
+  offsetX = offsetX + vX * dt; // integrate acceleration to get position change.
+  offsetY = offsetY + vY * dt;
+  //offsetX = 0; offsetY = 0;
   //r = getDistance() * cos(phi) + offsetX; // Adjusted radius based on tilt; assume walls are vertical and straight.
   //r = dist_avg * cos(phi); // Adjusted radius based on tilt; assume walls are vertical and straight.
   r = dist_avg; // The sonar will return about the same distance within a +/- 15-degree angle range.
